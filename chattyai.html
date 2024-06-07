@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Web App</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+</head>
+<body>
+  <h1>AI Web App</h1>
+  <div id="content">
+    <!-- Your AI application content -->
+    <p>Check the console for AI prediction result.</p>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDgmlpwJcOcDM_puFTXT5Qv1I-cCxu3Ez8",
+      authDomain: "my-awesome-project-0101.firebaseapp.com",
+      projectId: "my-awesome-project-0101",
+      storageBucket: "my-awesome-project-0101.appspot.com",
+      messagingSenderId: "734017967881",
+      appId: "1:734017967881:web:5be525d147658e10ea65d8",
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Initialize Firestore
+    const db = firebase.firestore();
+
+    // AI logic using TensorFlow.js
+    async function runAI() {
+      const modelURL = 'https://<username>.github.io/<repository>/model/model.json';  // Update this URL
+      const model = await tf.loadLayersModel(modelURL);
+      const input = tf.tensor2d([[1, 2, 3, 4]], [1, 4]);
+      const prediction = model.predict(input);
+      prediction.print();  // Output the prediction result to the console
+    }
+
+    runAI();
+  </script>
+</body>
+</html>
