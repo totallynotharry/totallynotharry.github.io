@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CodeyBlocks Programming Language</title>
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #blocklyDiv {
+      height: 480px;
+      width: 600px;
+      border: 1px solid #ddd;
+      margin-top: 20px;
+    }
+    #buttons {
+      margin-top: 10px;
+    }
+    pre {
+      background-color: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>CodeyBlocks Programming Language</h1>
+  <div id="blocklyDiv"></div>
+  <xml id="toolbox" style="display: none">
+    <category name="Logic" colour="210">
+      <block type="controls_if"></block>
+      <block type="logic_compare"></block>
+    </category>
+    <category name="Loops" colour="120">
+      <block type="controls_repeat_ext">
+        <value name="TIMES">
+          <shadow type="math_number">
+            <field name="NUM">10</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="controls_whileUntil"></block>
+    </category>
+    <category name="Math" colour="230">
+      <block type="math_number"></block>
+      <block type="math_arithmetic"></block>
+    </category>
+    <category name="Text" colour="160">
+      <block type="text"></block>
+      <block type="text_print"></block>
+    </category>
+    <category name="Custom" colour="260">
+      <block type="custom_print"></block>
+    </category>
+  </xml>
+  <div id="buttons">
+    <button onclick="showCode()">Show Code</button>
+    <button onclick="runCode()">Run Code</button>
+  </div>
+  <pre id="code"></pre>
+
+  <script>
+    // Inject Blockly workspace
+    var workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox')
+    });
+
+    // Define a custom block
+    Blockly.Blocks['custom_print'] = {
+      init: function() {
+        this.appendValueInput("TEXT")
+            .setCheck("String")
+            .appendField("print");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(160);
+        this.setTooltip('');
+        this.setHelpUrl('');
+      }
+    };
+
+    // Define code generation for the custom block
+    Blockly.JavaScript['custom_print'] = function(block) {
+      var value_text = Blockly.JavaScript.valueToCode(block, 'TEXT', Blockly.JavaScript.ORDER_ATOMIC);
+      var code = 'console.log(' + value_text + ');\n';
+      return code;
+    };
+
+    // Function to show the generated code
+    function showCode() {
+      var code = Blockly.JavaScript.workspaceToCode(workspace);
+      document.getElementById('code').innerText = code;
+    }
+
+    // Function to run the generated code
+    function runCode() {
+      var code = Blockly.JavaScript.workspaceToCode(workspace);
+      try {
+        eval(code);
+      } catch (e) {
+        alert('Error in code: ' + e);
+      }
+    }
+  </script>
+</body>
+</html>
