@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kláude</title>
+<script src="https://js.puter.com/v2/"></script>
+<!-- SheetJS for xlsx -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- docx via CDN -->
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+<!-- PptxGenJS -->
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/libs/pptxgen.bundle.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:     #30302e;
+  --bg2:    #3a3936;
+  --bg3:    #424140;
+  --bg4:    #4a4947;
+  --border: #524f4c;
+  --border2:#5e5a56;
+  --accent: #e8c98a;
+  --accent2:#e8c98a;
+  --accent3:#c9a96e;
+  --accent-glow: rgba(91,141,238,0.18);
+  --warm:   #c9a96e;
+  --warm2:  #e8c98a;
+  --text:   #f0ece6;
+  --text2:  #b5afa6;
+  --text3:  #7a756e;
+  --danger: #e05c5c;
+  --success:#5cb87a;
+  --radius: 12px;
+  --rsm:    7px;
+  --sb:     272px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+  font-family:'Lato',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+}
+
+/* ─── SIDEBAR ─── */
+#sidebar{
+  width:var(--sb);min-width:var(--sb);
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:18px 0 0;
+  z-index:10;
+}
+
+.sidebar-logo{
+  padding:0 18px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.logo-mark{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--accent3),var(--accent));
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;
+  font-size:15px;font-weight:600;color:#fff;
+  box-shadow:0 0 14px rgba(91,141,238,0.35);
+  flex-shrink:0;
+}
+.logo-text{
+  font-family:'Playfair Display',serif;
+  font-size:19px;color:var(--text);
+  letter-spacing:0.02em;
+}
+.logo-text em{color:var(--accent2);font-style:normal;}
+
+.sb-act{padding:12px 12px 0;}
+#new-chat-btn{
+  width:100%;
+  background:linear-gradient(135deg,var(--accent3),var(--accent));
+  border:none;border-radius:var(--rsm);
+  color:#fff;font-family:'Lato',sans-serif;
+  font-size:13px;font-weight:700;
+  padding:9px 14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:opacity .2s,box-shadow .2s;
+  box-shadow:0 2px 10px rgba(91,141,238,0.28);
+  letter-spacing:0.03em;
+}
+#new-chat-btn:hover{opacity:.9;box-shadow:0 4px 16px rgba(91,141,238,0.42);}
+
+.sb-search{padding:10px 12px 0;position:relative;}
+.sb-search input{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--rsm);color:var(--text);
+  font-family:'Lato',sans-serif;font-size:13px;
+  padding:7px 10px 7px 30px;outline:none;
+  transition:border-color .2s;
+}
+.sb-search input::placeholder{color:var(--text3);}
+.sb-search input:focus{border-color:var(--accent);}
+.sb-search .si{position:absolute;left:22px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
+
+.chats-lbl{
+  padding:12px 18px 5px;
+  font-size:10.5px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.1em;
+}
+
+#chat-list{
+  flex:1;overflow-y:auto;padding:0 6px;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+
+.chat-item{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 10px;border-radius:var(--rsm);
+  cursor:pointer;transition:background .15s;
+  position:relative;margin-bottom:1px;
+}
+.chat-item:hover{background:var(--bg3);}
+.chat-item.active{background:var(--bg4);}
+.chat-item.active::before{
+  content:'';position:absolute;left:0;top:22%;bottom:22%;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0;
+}
+.ci-txt{flex:1;min-width:0;}
+.ci-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-item.active .ci-title{color:var(--accent2);}
+.ci-meta{font-size:11px;color:var(--text3);margin-top:1px;}
+.chat-del{
+  opacity:0;background:none;border:none;color:var(--text3);
+  cursor:pointer;padding:3px;border-radius:4px;
+  transition:opacity .15s,color .15s,background .15s;
+}
+.chat-item:hover .chat-del{opacity:1;}
+.chat-del:hover{color:var(--danger);background:rgba(224,92,92,.1);}
+
+.sb-footer{
+  padding:12px 12px 14px;
+  border-top:1px solid var(--border);margin-top:6px;
+  display:flex;flex-direction:column;gap:2px;
+}
+.sb-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:var(--rsm);
+  background:none;border:none;
+  color:var(--text2);font-family:'Lato',sans-serif;
+  font-size:13px;cursor:pointer;
+  transition:background .15s,color .15s;width:100%;text-align:left;
+}
+.sb-btn:hover{background:var(--bg3);color:var(--text);}
+.sb-btn svg{opacity:.7;flex-shrink:0;}
+
+/* ─── MAIN ─── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);position:relative;}
+
+/* ─── WELCOME SCREEN ─── */
+#welcome-screen{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:40px 24px;text-align:center;gap:10px;
+}
+.wg{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(26px,4vw,42px);
+  color:var(--text);letter-spacing:-.01em;
+}
+.wg .na{color:var(--warm);}
+.ws{color:var(--text2);font-size:14.5px;max-width:380px;line-height:1.65;margin-top:4px;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:18px;max-width:560px;}
+.chip{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:18px;padding:7px 15px;
+  font-size:12.5px;color:var(--text2);cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+  font-family:'Lato',sans-serif;
+}
+.chip:hover{background:var(--bg3);border-color:var(--accent);color:var(--text);}
+
+/* ─── MESSAGES ─── */
+#messages{
+  flex:1;overflow-y:auto;padding:22px 0;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+  display:none;
+}
+.msg-row{display:flex;padding:5px 22px;gap:12px;animation:fadeUp .22s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.msg-row.user{justify-content:flex-end;}
+.msg-av{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;margin-top:2px;
+}
+.msg-row.assistant .msg-av{
+  background:linear-gradient(135deg,var(--accent3),var(--accent));
+  color:#fff;font-family:'Playfair Display',serif;
+  box-shadow:0 0 10px rgba(91,141,238,.3);
+}
+.msg-row.user .msg-av{
+  background:var(--bg4);color:var(--warm2);
+  border:1px solid var(--border2);order:2;
+}
+.msg-bubble{
+  max-width:min(660px,76%);padding:11px 15px;
+  border-radius:var(--radius);line-height:1.65;font-size:14px;
+}
+.msg-row.assistant .msg-bubble{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:2px var(--radius) var(--radius) var(--radius);color:var(--text);
+}
+.msg-row.user .msg-bubble{
+  background:linear-gradient(135deg,var(--accent3),var(--accent));
+  color:#fff;border-radius:var(--radius) 2px var(--radius) var(--radius);
+}
+.msg-bubble pre{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rsm);padding:11px;overflow-x:auto;margin:9px 0;font-size:12.5px;
+}
+.msg-bubble code{background:rgba(91,141,238,.13);border-radius:4px;padding:1px 5px;font-size:.88em;font-family:'SF Mono','Fira Code',monospace;}
+.msg-bubble pre code{background:none;padding:0;}
+.msg-bubble p{margin:5px 0;}
+.msg-bubble p:first-child{margin-top:0;}
+.msg-bubble p:last-child{margin-bottom:0;}
+.msg-file{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);border-radius:5px;padding:3px 9px;font-size:11.5px;margin-bottom:5px;}
+
+/* doc cards inside messages */
+.doc-card{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--rsm);padding:9px 13px;margin-top:8px;
+  cursor:pointer;transition:background .15s,border-color .15s;
+}
+.doc-card:hover{background:var(--bg4);border-color:var(--accent);}
+.doc-icon{font-size:20px;line-height:1;}
+.doc-info{display:flex;flex-direction:column;gap:1px;}
+.doc-name{font-size:13px;font-weight:700;color:var(--text);}
+.doc-meta{font-size:11px;color:var(--text3);}
+.doc-actions{display:flex;gap:5px;margin-left:6px;}
+.doc-btn{
+  padding:4px 9px;border-radius:5px;font-size:11.5px;font-weight:700;
+  cursor:pointer;border:none;font-family:'Lato',sans-serif;
+  transition:opacity .15s;
+}
+.doc-btn.preview{background:var(--bg2);color:var(--accent2);border:1px solid var(--border2);}
+.doc-btn.preview:hover{background:var(--bg);border-color:var(--accent);}
+.doc-btn.download{background:linear-gradient(135deg,var(--accent3),var(--accent));color:#fff;}
+.doc-btn.download:hover{opacity:.85;}
+
+.typing-ind{display:flex;gap:4px;align-items:center;padding:3px 0;}
+.typing-ind span{width:6px;height:6px;background:var(--accent2);border-radius:50%;animation:bounce 1.2s infinite;opacity:.7;}
+.typing-ind span:nth-child(2){animation-delay:.2s;}
+.typing-ind span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* ─── INPUT ─── */
+#input-area{padding:12px 22px 16px;border-top:1px solid var(--border);background:var(--bg);}
+.fp-strip{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;}
+.fp-chip{
+  display:flex;align-items:center;gap:5px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:5px;padding:3px 9px;font-size:11.5px;color:var(--text2);
+}
+.fp-rm{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;transition:color .15s;}
+.fp-rm:hover{color:var(--danger);}
+.input-box{
+  display:flex;background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+  transition:border-color .2s,box-shadow .2s;align-items:flex-end;
+}
+.input-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,141,238,.1);}
+#chat-input{
+  flex:1;background:none;border:none;color:var(--text);
+  font-family:'Lato',sans-serif;font-size:14px;
+  padding:13px 14px;outline:none;resize:none;
+  min-height:48px;max-height:150px;line-height:1.55;
+}
+#chat-input::placeholder{color:var(--text3);}
+.in-acts{display:flex;align-items:center;gap:3px;padding:7px 8px;}
+.icon-btn{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  background:none;border:none;border-radius:var(--rsm);
+  color:var(--text2);cursor:pointer;transition:background .15s,color .15s;
+}
+.icon-btn:hover{background:var(--bg3);color:var(--text);}
+#send-btn{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--accent3),var(--accent));
+  border:none;border-radius:var(--rsm);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .2s,box-shadow .2s;
+  box-shadow:0 2px 8px rgba(91,141,238,.28);
+}
+#send-btn:hover{opacity:.88;box-shadow:0 4px 12px rgba(91,141,238,.42);}
+#send-btn:disabled{opacity:.35;cursor:not-allowed;}
+#file-input{display:none;}
+.in-meta{display:flex;justify-content:flex-end;font-size:10.5px;color:var(--text3);padding-top:5px;}
+
+/* ─── MODALS BASE ─── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.65);
+  backdrop-filter:blur(5px);z-index:200;
+  display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;padding:26px 26px 22px;
+  box-shadow:0 22px 60px rgba(0,0,0,.55);
+  animation:mIn .2s ease;
+}
+@keyframes mIn{from{opacity:0;transform:scale(.95) translateY(-5px)}to{opacity:1;transform:none}}
+.modal h2{font-family:'Playfair Display',serif;font-size:21px;color:var(--text);margin-bottom:16px;}
+.fgrp{margin-bottom:14px;}
+.fgrp label{display:block;font-size:11.5px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em;}
+.fgrp input,.fgrp textarea,.fgrp select{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--rsm);color:var(--text);
+  font-family:'Lato',sans-serif;font-size:13.5px;
+  padding:9px 12px;outline:none;transition:border-color .2s;
+}
+.fgrp input:focus,.fgrp textarea:focus,.fgrp select:focus{border-color:var(--accent);}
+.fgrp textarea{resize:vertical;min-height:80px;line-height:1.55;}
+.fgrp select{cursor:pointer;}
+.modal-btns{display:flex;justify-content:flex-end;gap:7px;margin-top:18px;}
+.btn{padding:8px 18px;border-radius:var(--rsm);font-family:'Lato',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:opacity .2s,background .15s;letter-spacing:.02em;}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--bg4);color:var(--text);}
+.btn-primary{background:linear-gradient(135deg,var(--accent3),var(--accent));color:#fff;box-shadow:0 2px 8px rgba(91,141,238,.28);}
+.btn-primary:hover{opacity:.88;}
+
+/* ─── SETTINGS MODAL ─── */
+#settings-modal .modal{width:min(440px,90vw);}
+
+/* ─── ONBOARDING MODAL ─── */
+#onboard-modal .modal{
+  width:min(500px,90vw);
+  padding:0;overflow:hidden;
+}
+.ob-slides{display:flex;transition:transform .35s cubic-bezier(.4,0,.2,1);}
+.ob-slide{
+  min-width:100%;padding:34px 32px 28px;
+  display:flex;flex-direction:column;gap:0;
+}
+.ob-icon{font-size:42px;margin-bottom:14px;text-align:center;}
+.ob-slide h2{font-family:'Playfair Display',serif;font-size:24px;color:var(--text);margin-bottom:10px;text-align:center;}
+.ob-slide p{color:var(--text2);font-size:14px;line-height:1.7;text-align:center;margin-bottom:6px;}
+.ob-slide p strong{color:var(--warm2);}
+.ob-slide ul{color:var(--text2);font-size:13.5px;line-height:1.75;padding-left:18px;margin:6px 0 0;}
+.ob-slide ul li{margin-bottom:2px;}
+.ob-slide ul li strong{color:var(--text);}
+.ob-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px 24px;
+}
+.ob-dots{display:flex;gap:6px;}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);transition:background .2s,transform .2s;}
+.ob-dot.active{background:var(--accent);transform:scale(1.3);}
+.ob-slide-name-input{margin-top:14px;}
+
+/* ─── PREVIEW MODAL ─── */
+#preview-modal .modal{
+  width:min(860px,92vw);
+  height:min(88vh,720px);
+  padding:0;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.preview-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.preview-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--text);}
+.preview-actions{display:flex;gap:7px;align-items:center;}
+.preview-body{flex:1;overflow:auto;background:var(--bg);}
+.preview-body iframe{width:100%;height:100%;border:none;}
+.preview-body .preview-html{width:100%;height:100%;border:none;}
+
+/* table preview for xlsx */
+.xlsx-preview{padding:16px;overflow:auto;}
+.xlsx-table{border-collapse:collapse;font-size:13px;color:var(--text);width:max-content;}
+.xlsx-table th{background:var(--bg3);border:1px solid var(--border);padding:7px 12px;font-weight:700;color:var(--warm2);text-align:left;}
+.xlsx-table td{border:1px solid var(--border);padding:6px 12px;color:var(--text2);}
+.xlsx-table tr:hover td{background:var(--bg3);}
+
+/* docx preview */
+.docx-preview{padding:24px 32px;max-width:760px;margin:0 auto;font-size:14px;line-height:1.75;color:var(--text);}
+.docx-preview h1{font-family:'Playfair Display',serif;font-size:24px;margin:16px 0 10px;color:var(--warm2);}
+.docx-preview h2{font-family:'Playfair Display',serif;font-size:19px;margin:14px 0 8px;color:var(--accent2);}
+.docx-preview h3{font-size:15px;font-weight:700;margin:12px 0 6px;}
+.docx-preview p{margin:6px 0;}
+.docx-preview ul,.docx-preview ol{padding-left:22px;margin:6px 0;}
+
+/* pptx preview */
+.pptx-preview{padding:20px;display:flex;flex-direction:column;gap:16px;}
+.pptx-slide{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--rsm);padding:32px 40px;
+  min-height:160px;
+}
+.pptx-slide-num{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.pptx-slide h1{font-family:'Playfair Display',serif;font-size:22px;color:var(--warm2);margin-bottom:8px;}
+.pptx-slide h2{font-size:16px;font-weight:700;color:var(--accent2);margin-bottom:6px;}
+.pptx-slide p{font-size:13.5px;color:var(--text2);line-height:1.65;}
+.pptx-slide ul{color:var(--text2);font-size:13.5px;line-height:1.7;padding-left:18px;}
+
+/* bg subtle texture */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.02;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--border2);}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">K</div>
+    <div class="logo-text">Kl<em>á</em>ude</div>
+  </div>
+  <div class="sb-act">
+    <button id="new-chat-btn" onclick="newChat()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Chat
+    </button>
+  </div>
+  <div class="sb-search">
+    <span class="si"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    <input type="text" id="search-input" placeholder="Search chats…" oninput="filterChats(this.value)">
+  </div>
+  <div class="chats-lbl">Conversations</div>
+  <div id="chat-list"></div>
+  <div class="sb-footer">
+    <button class="sb-btn" onclick="openSettings()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+    <button class="sb-btn" onclick="showOnboarding()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      How it works
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <div id="welcome-screen">
+    <div class="wg">Good <span id="time-greet">day</span>, <span class="na" id="welcome-name">there</span>!</div>
+    <div class="ws">Kláude is ready — chat, generate documents, attach files, or just ask anything.</div>
+    <div class="chips">
+      <div class="chip" onclick="sendSugg('Write a professional report on climate change')">📄 Generate a report</div>
+      <div class="chip" onclick="sendSugg('Create a presentation about the future of AI')">📊 Make a presentation</div>
+      <div class="chip" onclick="sendSugg('Build a simple budget tracker spreadsheet')">📋 Build a spreadsheet</div>
+      <div class="chip" onclick="sendSugg('Write me a creative short story')">✍ Creative writing</div>
+      <div class="chip" onclick="sendSugg('Help me debug my code')">⌨ Debug code</div>
+    </div>
+  </div>
+
+  <div id="messages"></div>
+
+  <div id="input-area">
+    <div class="fp-strip" id="fp-strip"></div>
+    <div class="input-box">
+      <textarea id="chat-input" placeholder="Message Kláude… (try: 'Create a DOCX report on...')" rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <div class="in-acts">
+        <button class="icon-btn" title="Attach file" onclick="document.getElementById('file-input').click()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input type="file" id="file-input" multiple accept="*/*" onchange="handleFiles(this.files)">
+        <button id="send-btn" onclick="sendMessage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="in-meta">Enter to send · Shift+Enter for new line · Ask to create DOCX, PPTX, XLSX or HTML</div>
+  </div>
+</main>
+
+<!-- ─── ONBOARDING MODAL ─── -->
+<div class="modal-overlay" id="onboard-modal">
+  <div class="modal">
+    <div class="ob-slides" id="ob-slides">
+
+      <!-- Slide 0 -->
+      <div class="ob-slide">
+        <div class="ob-icon">✦</div>
+        <h2>Welcome to Kláude</h2>
+        <p>Your personal AI assistant, powered by <strong>Claude Sonnet 4.6</strong> — free via Puter.js. No API keys needed.</p>
+        <p style="margin-top:10px">Let's get you set up in just a moment.</p>
+      </div>
+
+      <!-- Slide 1 -->
+      <div class="ob-slide">
+        <div class="ob-icon">👤</div>
+        <h2>What's your name?</h2>
+        <p>Kláude will greet you personally and remember your name across sessions.</p>
+        <div class="ob-slide-name-input">
+          <div class="fgrp">
+            <label>Your Name</label>
+            <input type="text" id="ob-name" placeholder="e.g. Cornelius, User, Lord" autofocus>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 2 -->
+      <div class="ob-slide">
+        <div class="ob-icon">🎨</div>
+        <h2>Customise the AI</h2>
+        <p>Give Kláude a personality. Leave blank for the default helpful style.</p>
+        <div style="margin-top:12px;">
+          <div class="fgrp">
+            <label>Style / Personality</label>
+            <textarea id="ob-personality" placeholder="e.g. Be concise and witty. Use bullet points where helpful. Speak like an expert but accessibly."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3 -->
+      <div class="ob-slide">
+        <div class="ob-icon">📄</div>
+        <h2>Document Generation</h2>
+        <p>Kláude can create real, downloadable files — just ask!</p>
+        <ul>
+          <li><strong>DOCX</strong> — Word documents with formatted text</li>
+          <li><strong>PPTX</strong> — PowerPoint slide decks</li>
+          <li><strong>XLSX</strong> — Excel spreadsheets with data</li>
+          <li><strong>HTML</strong> — Web pages, previewed in-browser</li>
+        </ul>
+        <p style="margin-top:10px;font-size:13px;">Try: <em>"Create a PPTX presentation about renewable energy"</em></p>
+      </div>
+
+      <!-- Slide 4 -->
+      <div class="ob-slide">
+        <div class="ob-icon">🔐</div>
+        <h2>Powered by Puter</h2>
+        <p>Kláude uses <strong>Puter.js</strong> for free, unlimited Claude access.</p>
+        <p style="margin-top:8px;">When you send your first message, Puter will ask you to sign in with a free account. Your usage is covered by your own Puter account — no billing to worry about.</p>
+        <p style="margin-top:8px;">All your chats are saved locally in your browser.</p>
+      </div>
+
+    </div>
+    <div class="ob-nav">
+      <div class="ob-dots" id="ob-dots"></div>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-ghost" id="ob-back-btn" onclick="obBack()" style="display:none">Back</button>
+        <button class="btn btn-primary" id="ob-next-btn" onclick="obNext()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SETTINGS MODAL ─── -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" style="width:min(440px,90vw)">
+    <h2>Settings</h2>
+    <div class="fgrp">
+      <label>Your Name</label>
+      <input type="text" id="s-name" placeholder="Your name…">
+    </div>
+    <div class="fgrp">
+      <label>AI Personality &amp; Style</label>
+      <textarea id="s-personality" placeholder="e.g. Be concise. Use bullet points. Speak with warmth…"></textarea>
+    </div>
+    <div class="fgrp">
+      <label>Model</label>
+      <select id="s-model">
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Default)</option>
+        <option value="claude-opus-4-6">Claude Opus 4.6</option>
+        <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PREVIEW MODAL ─── -->
+<div class="modal-overlay" id="preview-modal">
+  <div class="modal" style="width:min(860px,93vw);height:min(88vh,720px);padding:0;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="preview-header">
+      <div class="preview-title" id="preview-title">Preview</div>
+      <div class="preview-actions">
+        <button class="btn btn-primary" id="preview-dl-btn" style="font-size:12px;padding:6px 13px;">⬇ Download</button>
+        <button class="btn btn-ghost" onclick="closePreview()" style="font-size:12px;padding:6px 13px;">✕ Close</button>
+      </div>
+    </div>
+    <div class="preview-body" id="preview-body"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let S = {
+  chats: {},
+  activeChatId: null,
+  settings: { name: '', personality: '', model: 'claude-sonnet-4-6' },
+  firstTime: true
+};
+let attachedFiles = [];
+let isStreaming = false;
+let generatedDocs = {}; // id -> { name, type, blob/content }
+let obSlide = 0;
+const OB_TOTAL = 5;
+let currentPreviewDoc = null;
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+function init() {
+  loadStorage();
+  renderChatList();
+  updateWelcomeName();
+  setTimeGreet();
+  if (S.activeChatId && S.chats[S.activeChatId]) loadChat(S.activeChatId);
+  if (S.firstTime) { setTimeout(showOnboarding, 400); }
+}
+
+function setTimeGreet() {
+  const h = new Date().getHours();
+  document.getElementById('time-greet').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+}
+function updateWelcomeName() {
+  document.getElementById('welcome-name').textContent = S.settings.name || 'there';
+}
+
+// ══════════════════════════════════════════════
+//  STORAGE
+// ══════════════════════════════════════════════
+function loadStorage() {
+  try {
+    const d = JSON.parse(localStorage.getItem('klaude_v2') || '{}');
+    S.chats = d.chats || {};
+    S.settings = Object.assign(S.settings, d.settings || {});
+    S.activeChatId = d.activeChatId || null;
+    S.firstTime = d.firstTime !== false;
+  } catch(e){}
+}
+function save() {
+  localStorage.setItem('klaude_v2', JSON.stringify({
+    chats: S.chats, settings: S.settings,
+    activeChatId: S.activeChatId, firstTime: false
+  }));
+}
+
+// ══════════════════════════════════════════════
+//  ONBOARDING
+// ══════════════════════════════════════════════
+function showOnboarding() {
+  obSlide = 0;
+  renderObDots();
+  renderObSlide();
+  document.getElementById('onboard-modal').classList.add('open');
+}
+
+function renderObDots() {
+  const d = document.getElementById('ob-dots');
+  d.innerHTML = '';
+  for (let i=0;i<OB_TOTAL;i++) {
+    const dot = document.createElement('div');
+    dot.className = 'ob-dot' + (i===obSlide?' active':'');
+    d.appendChild(dot);
+  }
+}
+
+function renderObSlide() {
+  document.getElementById('ob-slides').style.transform = `translateX(-${obSlide * 100}%)`;
+  document.getElementById('ob-back-btn').style.display = obSlide > 0 ? '' : 'none';
+  document.getElementById('ob-next-btn').textContent = obSlide === OB_TOTAL-1 ? "Let's go! ✦" : 'Next →';
+  renderObDots();
+}
+
+function obNext() {
+  if (obSlide === OB_TOTAL-1) {
+    // Save name/personality from onboarding
+    const n = (document.getElementById('ob-name').value || '').trim();
+    const p = (document.getElementById('ob-personality').value || '').trim();
+    if (n) S.settings.name = n;
+    if (p) S.settings.personality = p;
+    S.firstTime = false;
+    save();
+    updateWelcomeName();
+    document.getElementById('onboard-modal').classList.remove('open');
+    return;
+  }
+  obSlide++;
+  renderObSlide();
+  if (obSlide === 1) setTimeout(() => document.getElementById('ob-name').focus(), 350);
+}
+function obBack() { if (obSlide > 0) { obSlide--; renderObSlide(); } }
+
+// Click outside onboarding to skip
+document.getElementById('onboard-modal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    S.firstTime = false; save();
+    this.classList.remove('open');
+  }
+});
+
+// ══════════════════════════════════════════════
+//  CHAT MANAGEMENT
+// ══════════════════════════════════════════════
+function gid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function newChat() {
+  const id = gid();
+  S.chats[id] = { id, title: 'New Chat', messages: [], createdAt: Date.now() };
+  S.activeChatId = id; save(); renderChatList(); showWelcomeScreen();
+}
+
+function loadChat(id) {
+  S.activeChatId = id; save(); renderChatList();
+  const chat = S.chats[id];
+  if (!chat) return;
+  if (chat.messages.length === 0) { showWelcomeScreen(); return; }
+  document.getElementById('welcome-screen').style.display = 'none';
+  const mel = document.getElementById('messages');
+  mel.style.display = 'block'; mel.innerHTML = '';
+  chat.messages.forEach(m => appendMsgDOM(m.role, m.content, m.fileName, m.docId));
+  scrollBot();
+}
+
+function deleteChat(id, e) {
+  e.stopPropagation();
+  delete S.chats[id];
+  if (S.activeChatId === id) { S.activeChatId = null; showWelcomeScreen(); }
+  save(); renderChatList();
+}
+
+function showWelcomeScreen() {
+  document.getElementById('welcome-screen').style.display = 'flex';
+  document.getElementById('messages').style.display = 'none';
+  document.getElementById('messages').innerHTML = '';
+}
+
+function renderChatList(filter = '') {
+  const list = document.getElementById('chat-list'); list.innerHTML = '';
+  const chats = Object.values(S.chats).sort((a,b) => b.createdAt - a.createdAt);
+  const filtered = filter ? chats.filter(c => c.title.toLowerCase().includes(filter.toLowerCase())) : chats;
+  if (!filtered.length) {
+    list.innerHTML = `<div style="padding:14px;font-size:12.5px;color:var(--text3);text-align:center">No chats yet</div>`;
+    return;
+  }
+  filtered.forEach(chat => {
+    const el = document.createElement('div');
+    el.className = 'chat-item' + (chat.id === S.activeChatId ? ' active' : '');
+    el.onclick = () => loadChat(chat.id);
+    el.innerHTML = `
+      <div class="ci-txt">
+        <div class="ci-title">${esc(chat.title)}</div>
+        <div class="ci-meta">${timeAgo(chat.createdAt)}</div>
+      </div>
+      <button class="chat-del" onclick="deleteChat('${chat.id}',event)" title="Delete">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>`;
+    list.appendChild(el);
+  });
+}
+
+function filterChats(v) { renderChatList(v); }
+
+function timeAgo(ts) {
+  const d=Date.now()-ts, m=Math.floor(d/60000);
+  if(m<1) return 'Just now'; if(m<60) return m+'m ago';
+  const h=Math.floor(m/60); if(h<24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+
+// ══════════════════════════════════════════════
+//  FILE ATTACH
+// ══════════════════════════════════════════════
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => { attachedFiles.push({name:file.name,type:file.type,content:reader.result}); renderFP(); };
+    reader.onerror = () => { attachedFiles.push({name:file.name,type:file.type,content:'[Binary file]'}); renderFP(); };
+    try { reader.readAsText(file); } catch(e) { attachedFiles.push({name:file.name,type:file.type,content:'[File]'}); renderFP(); }
+  });
+  document.getElementById('file-input').value='';
+}
+function renderFP() {
+  const s=document.getElementById('fp-strip'); s.innerHTML='';
+  attachedFiles.forEach((f,i)=>{
+    const c=document.createElement('div'); c.className='fp-chip';
+    c.innerHTML=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${esc(f.name)}<button class="fp-rm" onclick="rmFile(${i})">×</button>`;
+    s.appendChild(c);
+  });
+}
+function rmFile(i) { attachedFiles.splice(i,1); renderFP(); }
+
+// ══════════════════════════════════════════════
+//  DOCUMENT GENERATION
+// ══════════════════════════════════════════════
+const DOC_TYPES = {
+  docx: { ext:'docx', icon:'📄', label:'Word Document', mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+  pptx: { ext:'pptx', icon:'📊', label:'PowerPoint',    mime:'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+  xlsx: { ext:'xlsx', icon:'📋', label:'Spreadsheet',   mime:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  html: { ext:'html', icon:'🌐', label:'HTML Page',     mime:'text/html' }
+};
+
+function detectDocRequest(text) {
+  const t = text.toLowerCase();
+  if (/\b(docx|word document|word doc)\b/.test(t)) return 'docx';
+  if (/\b(pptx|powerpoint|presentation|slides|slide deck)\b/.test(t)) return 'pptx';
+  if (/\b(xlsx|excel|spreadsheet|sheet)\b/.test(t)) return 'xlsx';
+  if (/\b(html page|html file|webpage|web page)\b/.test(t)) return 'html';
+  return null;
+}
+
+// Ask AI for structured JSON for doc generation
+async function generateDocContent(docType, userRequest, systemPrompt) {
+  const jsonInstructions = {
+    docx: `Return ONLY valid JSON (no markdown, no preamble) in this exact format:
+{
+  "title": "Document title",
+  "sections": [
+    { "heading": "Section heading", "level": 1, "content": "Paragraph text here." },
+    { "heading": "Subheading", "level": 2, "content": "More text." }
+  ]
+}`,
+    pptx: `Return ONLY valid JSON (no markdown, no preamble) in this exact format:
+{
+  "title": "Presentation title",
+  "slides": [
+    { "title": "Slide title", "subtitle": "Optional subtitle", "bullets": ["Point 1","Point 2","Point 3"] },
+    { "title": "Slide 2 title", "subtitle": "", "bullets": ["Bullet A","Bullet B"] }
+  ]
+}
+Include 6-10 slides with meaningful content.`,
+    xlsx: `Return ONLY valid JSON (no markdown, no preamble) in this exact format:
+{
+  "title": "Spreadsheet title",
+  "sheets": [
+    {
+      "name": "Sheet1",
+      "headers": ["Column A","Column B","Column C"],
+      "rows": [
+        ["Value 1","Value 2","Value 3"],
+        ["Value 4","Value 5","Value 6"]
+      ]
+    }
+  ]
+}
+Include realistic, meaningful data with at least 8 rows.`,
+    html: `Return ONLY the complete HTML document as a string. No JSON wrapper, just raw HTML starting with <!DOCTYPE html>. Make it visually attractive with embedded CSS, dark theme preferred. Use a clean, professional layout.`
+  };
+
+  const msgs = [{ role:'user', content: `${userRequest}\n\n${jsonInstructions[docType]}` }];
+  let full = '';
+  const resp = await puter.ai.chat(msgs, { model: S.settings.model||'claude-sonnet-4-6', stream:true, system: systemPrompt });
+  for await (const p of resp) if (p?.text) full += p.text;
+  return full.trim();
+}
+
+async function buildDocx(jsonStr, filename) {
+  // Clean potential markdown fences
+  const clean = jsonStr.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
+  const data = JSON.parse(clean);
+
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+  const children = [];
+
+  // Title
+  children.push(new Paragraph({ text: data.title || 'Document', heading: HeadingLevel.TITLE }));
+
+  (data.sections||[]).forEach(sec => {
+    const headingMap = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3 };
+    if (sec.heading) children.push(new Paragraph({ text: sec.heading, heading: headingMap[sec.level||1]||HeadingLevel.HEADING_1 }));
+    if (sec.content) {
+      sec.content.split('\n').forEach(line => {
+        if (line.trim()) children.push(new Paragraph({ children: [new TextRun(line)] }));
+      });
+    }
+  });
+
+  const doc = new Document({ sections:[{ properties:{}, children }] });
+  const blob = await Packer.toBlob(doc);
+  return blob;
+}
+
+async function buildPptx(jsonStr, filename) {
+  const clean = jsonStr.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
+  const data = JSON.parse(clean);
+
+  const pres = new PptxGenJS();
+  pres.title = data.title || 'Presentation';
+
+  (data.slides||[]).forEach((s, idx) => {
+    const slide = pres.addSlide();
+    slide.background = { color: '30302e' };
+
+    // Title
+    slide.addText(s.title||'', {
+      x:0.4, y:0.3, w:'90%', h:1.0,
+      fontSize:26, bold:true, color:'e8c98a',
+      fontFace:'Georgia'
+    });
+
+    if (s.subtitle) {
+      slide.addText(s.subtitle, { x:0.4, y:1.1, w:'90%', h:0.5, fontSize:16, color:'b5afa6' });
+    }
+
+    if (s.bullets && s.bullets.length) {
+      const bulletObjs = s.bullets.map(b => ({ text: b, options:{fontSize:14, color:'f0ece6', bullet:{type:'bullet'}} }));
+      slide.addText(bulletObjs, { x:0.4, y:1.8, w:'90%', h:3.5, fontSize:14, color:'f0ece6' });
+    }
+
+    // Slide number
+    slide.addText(`${idx+1}`, { x:9.0, y:6.7, w:0.5, h:0.3, fontSize:9, color:'7a756e' });
+  });
+
+  const blob = await pres.write({ outputType:'blob' });
+  return blob;
+}
+
+async function buildXlsx(jsonStr, filename) {
+  const clean = jsonStr.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
+  const data = JSON.parse(clean);
+
+  const wb = XLSX.utils.book_new();
+  (data.sheets||[]).forEach(sheet => {
+    const aoa = [sheet.headers||[], ...(sheet.rows||[])];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, sheet.name||'Sheet1');
+  });
+
+  const buf = XLSX.write(wb, { type:'array', bookType:'xlsx' });
+  return new Blob([buf], { type: DOC_TYPES.xlsx.mime });
+}
+
+function buildHtml(rawHtml) {
+  return new Blob([rawHtml], { type: 'text/html' });
+}
+
+// Parse structured doc data for preview
+function parseDocPreview(docType, rawContent) {
+  try {
+    if (docType === 'html') return rawContent;
+    const clean = rawContent.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
+    return JSON.parse(clean);
+  } catch(e) { return null; }
+}
+
+// ══════════════════════════════════════════════
+//  PREVIEW MODAL
+// ══════════════════════════════════════════════
+function openPreview(docId) {
+  const doc = generatedDocs[docId];
+  if (!doc) return;
+  currentPreviewDoc = doc;
+  document.getElementById('preview-title').textContent = doc.name;
+
+  const body = document.getElementById('preview-body');
+  body.innerHTML = '';
+
+  document.getElementById('preview-dl-btn').onclick = () => downloadDoc(docId);
+
+  if (doc.type === 'html') {
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = doc.rawContent;
+    iframe.style.cssText = 'width:100%;height:100%;border:none;background:#fff;';
+    body.appendChild(iframe);
+
+  } else if (doc.type === 'xlsx') {
+    const data = parseDocPreview('xlsx', doc.rawContent);
+    if (!data) { body.innerHTML = '<div style="padding:20px;color:var(--text2)">Preview not available</div>'; }
+    else {
+      const wrap = document.createElement('div'); wrap.className = 'xlsx-preview';
+      (data.sheets||[]).forEach(sheet => {
+        const h = document.createElement('h3'); h.style.cssText='color:var(--warm2);margin-bottom:10px;font-family:Playfair Display,serif;'; h.textContent = sheet.name||'Sheet'; wrap.appendChild(h);
+        const tbl = document.createElement('table'); tbl.className='xlsx-table';
+        const thead=document.createElement('thead'), tr=document.createElement('tr');
+        (sheet.headers||[]).forEach(h=>{const th=document.createElement('th');th.textContent=h;tr.appendChild(th);});
+        thead.appendChild(tr); tbl.appendChild(thead);
+        const tbody=document.createElement('tbody');
+        (sheet.rows||[]).forEach(row=>{const tr2=document.createElement('tr');row.forEach(cell=>{const td=document.createElement('td');td.textContent=cell;tr2.appendChild(td);});tbody.appendChild(tr2);});
+        tbl.appendChild(tbody); wrap.appendChild(tbl);
+      });
+      body.appendChild(wrap);
+    }
+
+  } else if (doc.type === 'docx') {
+    const data = parseDocPreview('docx', doc.rawContent);
+    if (!data) { body.innerHTML = '<div style="padding:20px;color:var(--text2)">Preview not available</div>'; }
+    else {
+      const wrap = document.createElement('div'); wrap.className = 'docx-preview';
+      const h1 = document.createElement('h1'); h1.textContent = data.title||''; wrap.appendChild(h1);
+      (data.sections||[]).forEach(sec => {
+        if (sec.heading) {
+          const hEl = document.createElement(`h${sec.level||1}`); hEl.textContent = sec.heading; wrap.appendChild(hEl);
+        }
+        if (sec.content) {
+          sec.content.split('\n').forEach(line => {
+            if(line.trim()){const p=document.createElement('p');p.textContent=line;wrap.appendChild(p);}
+          });
+        }
+      });
+      body.appendChild(wrap);
+    }
+
+  } else if (doc.type === 'pptx') {
+    const data = parseDocPreview('pptx', doc.rawContent);
+    if (!data) { body.innerHTML = '<div style="padding:20px;color:var(--text2)">Preview not available</div>'; }
+    else {
+      const wrap = document.createElement('div'); wrap.className = 'pptx-preview';
+      (data.slides||[]).forEach((s,i) => {
+        const slide = document.createElement('div'); slide.className = 'pptx-slide';
+        slide.innerHTML = `
+          <div class="pptx-slide-num">Slide ${i+1}</div>
+          <h1>${esc(s.title||'')}</h1>
+          ${s.subtitle ? `<h2>${esc(s.subtitle)}</h2>` : ''}
+          ${s.bullets ? `<ul>${s.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>` : ''}
+        `;
+        wrap.appendChild(slide);
+      });
+      body.appendChild(wrap);
+    }
+  }
+
+  document.getElementById('preview-modal').classList.add('open');
+}
+
+function closePreview() {
+  document.getElementById('preview-modal').classList.remove('open');
+  currentPreviewDoc = null;
+}
+
+function downloadDoc(docId) {
+  const doc = generatedDocs[docId];
+  if (!doc || !doc.blob) return;
+  const url = URL.createObjectURL(doc.blob);
+  const a = document.createElement('a'); a.href=url; a.download=doc.name;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+
+document.getElementById('preview-modal').addEventListener('click', function(e){if(e.target===this)closePreview();});
+
+// ══════════════════════════════════════════════
+//  MESSAGING
+// ══════════════════════════════════════════════
+async function sendMessage() {
+  if (isStreaming) return;
+  const inputEl = document.getElementById('chat-input');
+  const text = inputEl.value.trim();
+  if (!text && !attachedFiles.length) return;
+
+  if (!S.activeChatId || !S.chats[S.activeChatId]) {
+    const id = gid();
+    S.chats[id] = {id, title:'New Chat', messages:[], createdAt:Date.now()};
+    S.activeChatId = id;
+  }
+  const chat = S.chats[S.activeChatId];
+  inputEl.value = ''; autoResize(inputEl);
+
+  const filesSnap = [...attachedFiles]; attachedFiles=[]; renderFP();
+  const fileCtx = filesSnap.map(f=>`\n\n[File: ${f.name}]\n${f.content}`).join('');
+  const fileNames = filesSnap.map(f=>f.name).join(', ');
+
+  document.getElementById('welcome-screen').style.display='none';
+  const mel=document.getElementById('messages'); mel.style.display='block';
+
+  appendMsgDOM('user', text, fileNames||null, null);
+  chat.messages.push({role:'user', content:text, fileName:fileNames||null});
+  if (chat.messages.filter(m=>m.role==='user').length===1) chat.title = text.slice(0,44)+(text.length>44?'…':'');
+  save(); renderChatList();
+
+  // Typing
+  const typingRow = document.createElement('div');
+  typingRow.className='msg-row assistant'; typingRow.id='typing-row';
+  typingRow.innerHTML=`<div class="msg-av">K</div><div class="msg-bubble"><div class="typing-ind"><span></span><span></span><span></span></div></div>`;
+  mel.appendChild(typingRow); scrollBot();
+
+  isStreaming=true; document.getElementById('send-btn').disabled=true;
+
+  const userName = S.settings.name||'there';
+  const pers = S.settings.personality ? `\n\nPersonality/Style: ${S.settings.personality}` : '';
+  const systemPrompt = `You are Kláude, an elegant and insightful AI assistant. The user's name is ${userName}. When starting a new conversation, greet them warmly by name and introduce yourself as Kláude. Be thoughtful, clear, and helpful.${pers}
+
+IMPORTANT: When the user requests a document (DOCX, PPTX, XLSX, or HTML), you should acknowledge you are generating it and confirm the topic/content you'll include. Keep your conversational response brief since the document will appear as an attachment below.`;
+
+  const docType = detectDocRequest(text);
+
+  try {
+    if (docType) {
+      // Two-phase: chat response + doc generation
+      const chatMessages = chat.messages.map((m,i) => ({
+        role: m.role,
+        content: i===chat.messages.length-1 && filesSnap.length ? m.content+fileCtx : m.content
+      }));
+
+      // Phase 1: conversational reply
+      const chatResp = await puter.ai.chat(chatMessages, {
+        model: S.settings.model||'claude-sonnet-4-6',
+        stream:true,
+        system: systemPrompt
+      });
+
+      document.getElementById('typing-row')?.remove();
+      const aRow=document.createElement('div'); aRow.className='msg-row assistant';
+      aRow.innerHTML=`<div class="msg-av">K</div><div class="msg-bubble" id="sb"></div>`;
+      mel.appendChild(aRow);
+
+      let chatText='';
+      const bub=document.getElementById('sb');
+      for await (const p of chatResp) if(p?.text){chatText+=p.text;bub.innerHTML=fmtMsg(chatText);scrollBot();}
+      bub.removeAttribute('id');
+
+      // Phase 2: generate doc content
+      const genRow=document.createElement('div'); genRow.className='msg-row assistant';
+      genRow.id='gen-row';
+      genRow.innerHTML=`<div class="msg-av">K</div><div class="msg-bubble"><div style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;"><div class="typing-ind"><span></span><span></span><span></span></div> Generating ${DOC_TYPES[docType].label}…</div></div>`;
+      mel.appendChild(genRow); scrollBot();
+
+      const rawContent = await generateDocContent(docType, text+fileCtx, systemPrompt);
+      document.getElementById('gen-row')?.remove();
+
+      // Build actual file
+      let blob;
+      try {
+        if (docType==='docx') blob=await buildDocx(rawContent, 'document');
+        else if (docType==='pptx') blob=await buildPptx(rawContent, 'presentation');
+        else if (docType==='xlsx') blob=await buildXlsx(rawContent, 'spreadsheet');
+        else if (docType==='html') blob=buildHtml(rawContent);
+      } catch(buildErr) {
+        console.error('Build error:', buildErr);
+        blob=null;
+      }
+
+      const docId = gid();
+      const ext = DOC_TYPES[docType].ext;
+      const baseName = (chat.title.replace(/[^a-zA-Z0-9 ]/g,'').trim().slice(0,30)||'document').replace(/ /g,'_');
+      const fileName = `${baseName}.${ext}`;
+
+      generatedDocs[docId] = { id:docId, name:fileName, type:docType, blob, rawContent };
+
+      // Show doc card
+      const docRow=document.createElement('div'); docRow.className='msg-row assistant';
+      docRow.innerHTML=`<div class="msg-av">K</div>
+        <div class="msg-bubble">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">Here's your ${DOC_TYPES[docType].label}:</div>
+          <div class="doc-card">
+            <div class="doc-icon">${DOC_TYPES[docType].icon}</div>
+            <div class="doc-info">
+              <div class="doc-name">${esc(fileName)}</div>
+              <div class="doc-meta">${DOC_TYPES[docType].label}</div>
+            </div>
+            <div class="doc-actions">
+              <button class="doc-btn preview" onclick="openPreview('${docId}')">👁 Preview</button>
+              ${blob ? `<button class="doc-btn download" onclick="downloadDoc('${docId}')">⬇ Download</button>` : `<span style="font-size:11px;color:var(--danger)">Build error</span>`}
+            </div>
+          </div>
+        </div>`;
+      mel.appendChild(docRow); scrollBot();
+
+      chat.messages.push({role:'assistant', content:chatText, docId});
+
+    } else {
+      // Normal chat
+      const apiMsgs = chat.messages.map((m,i) => ({
+        role:m.role,
+        content: i===chat.messages.length-1 && filesSnap.length ? m.content+fileCtx : m.content
+      }));
+      const resp = await puter.ai.chat(apiMsgs, {model:S.settings.model||'claude-sonnet-4-6', stream:true, system:systemPrompt});
+      document.getElementById('typing-row')?.remove();
+      const aRow=document.createElement('div'); aRow.className='msg-row assistant';
+      aRow.innerHTML=`<div class="msg-av">K</div><div class="msg-bubble" id="sb"></div>`;
+      mel.appendChild(aRow);
+      let full=''; const bub=document.getElementById('sb');
+      for await (const p of resp) if(p?.text){full+=p.text;bub.innerHTML=fmtMsg(full);scrollBot();}
+      bub.removeAttribute('id');
+      chat.messages.push({role:'assistant', content:full});
+    }
+
+    save();
+  } catch(err) {
+    document.getElementById('typing-row')?.remove();
+    document.getElementById('gen-row')?.remove();
+    appendMsgDOM('assistant', `Sorry, something went wrong.\n\n_${esc(err.message)}_`);
+  }
+
+  isStreaming=false; document.getElementById('send-btn').disabled=false;
+}
+
+function sendSugg(t) { document.getElementById('chat-input').value=t; sendMessage(); }
+
+function appendMsgDOM(role, content, fileName, docId) {
+  const mel=document.getElementById('messages');
+  const row=document.createElement('div'); row.className=`msg-row ${role}`;
+  const init = role==='assistant' ? 'K' : (S.settings.name||'U')[0].toUpperCase();
+  const fileHTML = fileName ? `<div class="msg-file"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${esc(fileName)}</div>` : '';
+  row.innerHTML=`<div class="msg-av">${init}</div><div class="msg-bubble">${fileHTML}${fmtMsg(content)}</div>`;
+  mel.appendChild(row); scrollBot();
+}
+
+function fmtMsg(t) {
+  return t
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```([\s\S]*?)```/g,(_,c)=>`<pre><code>${c.trim()}</code></pre>`)
+    .replace(/`([^`\n]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/\n/g,'<br>');
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function scrollBot(){const m=document.getElementById('messages');m.scrollTop=m.scrollHeight;}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,150)+'px';}
+
+// ══════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════
+function openSettings(){
+  document.getElementById('s-name').value=S.settings.name||'';
+  document.getElementById('s-personality').value=S.settings.personality||'';
+  document.getElementById('s-model').value=S.settings.model||'claude-sonnet-4-6';
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
+function saveSettings(){
+  S.settings.name=(document.getElementById('s-name').value||'').trim()||'User';
+  S.settings.personality=(document.getElementById('s-personality').value||'').trim();
+  S.settings.model=document.getElementById('s-model').value;
+  save(); updateWelcomeName(); closeSettings();
+}
+document.getElementById('settings-modal').addEventListener('click',function(e){if(e.target===this)closeSettings();});
+
+// ══════════════════════════════════════════════
+//  START
+// ══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
